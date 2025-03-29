@@ -334,3 +334,78 @@ public:
         return range_query_recur(2*node + 1, l, mid, L, R) + range_query_recur(2*node + 2, mid+1, r, L, R);
     }
 };
+
+class SegmentTree {
+public:
+    vector<int> tree, lazy;
+    int size;
+
+    void build(const vector<int>& arr, int node, int start, int end) {
+        if (start == end) {
+            tree[node] = arr[start];
+        } else {
+            int mid = (start + end) / 2;
+            build(arr, 2 * node + 1, start, mid);
+            build(arr, 2 * node + 2, mid + 1, end);
+            tree[node] = max(tree[2 * node + 1], tree[2 * node + 2]);
+        }
+    }
+
+    void updateRange(int node, int start, int end, int l, int r, int value) {
+        if (lazy[node] != 0) {
+            tree[node] += lazy[node];
+            if (start != end) { 
+                lazy[2 * node + 1] += lazy[node];
+                lazy[2 * node + 2] += lazy[node];
+            }
+            lazy[node] = 0;
+        }
+        if (start > end || start > r || end < l) return;
+        if (start >= l && end <= r) {
+            tree[node] += value;
+            if (start != end) { 
+                lazy[2 * node + 1] += value;
+                lazy[2 * node + 2] += value;
+            }
+            return;
+        }
+        int mid = (start + end) / 2;
+        updateRange(2 * node + 1, start, mid, l, r, value);
+        updateRange(2 * node + 2, mid + 1, end, l, r, value);
+        tree[node] = max(tree[2 * node + 1] + lazy[2 * node + 1],
+                         tree[2 * node + 2] + lazy[2 * node + 2]);
+    }
+
+    int queryRange(int node, int start, int end, int l, int r) {
+        if (start > end || start > r || end < l) return -inf;
+        if (lazy[node] != 0) {
+            tree[node] += lazy[node];
+            if (start != end) {
+                lazy[2 * node + 1] += lazy[node];
+                lazy[2 * node + 2] += lazy[node];
+            }
+            lazy[node] = 0;
+        }
+        if (start >= l && end <= r) return tree[node];
+        int mid = (start + end) / 2;
+        int leftMax = queryRange(2 * node + 1, start, mid, l, r);
+        int rightMax = queryRange(2 * node + 2, mid + 1, end, l, r);
+        return max(leftMax, rightMax);
+    }
+
+public:
+    SegmentTree(const vector<int>& arr) {
+        size = arr.size();
+        tree.resize(4 * size);
+        lazy.resize(4 * size, 0);
+        build(arr, 0, 0, size - 1);
+    }
+
+    void update(int l, int r, int value) {
+        updateRange(0, 0, size - 1, l, r, value);
+    }
+
+    int query(int l, int r) {
+        return queryRange(0, 0, size - 1, l, r);
+    }
+};
